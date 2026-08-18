@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Calorie Tracker</title>
+<title>Calorie & Protein Tracker</title>
 
 <!-- PWA -->
 <link rel="manifest" href="./manifest.json">
@@ -11,7 +11,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Calories">
+<meta name="apple-mobile-web-app-title" content="Calories & Protein">
 <link rel="icon" href="./icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="icon" href="./icons/favicon-16.png" sizes="16x16" type="image/png">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
@@ -49,7 +49,7 @@
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-thumb { background:#2A303B; border-radius: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  .day-cell { aspect-ratio: 1 / 1; }
+  .day-cell { aspect-ratio: 1 / 1; min-height: 52px; }
   .bar-fill { transition: height .35s ease, background-color .35s ease; }
   .modal-backdrop { backdrop-filter: blur(6px); }
   input:focus, textarea:focus, button:focus-visible { outline: 2px solid #C9A227; outline-offset: 2px; }
@@ -65,8 +65,8 @@
   <header class="border-b border-line bg-surface/60 sticky top-0 z-30 backdrop-blur">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-3">
       <div>
-        <p class="text-[11px] tracking-[0.25em] text-gold font-mono uppercase">Daily Log</p>
-        <h1 class="font-display text-xl sm:text-2xl font-semibold tracking-wide uppercase leading-tight">Calorie Tracker</h1>
+        <p class="text-[11px] tracking-[0.25em] text-gold font-mono uppercase">Daily Nutrition Log</p>
+        <h1 class="font-display text-xl sm:text-2xl font-semibold tracking-wide uppercase leading-tight">Calorie & Protein Tracker</h1>
       </div>
       <div class="flex items-center gap-2">
         <button id="installBtn" onclick="installApp()" class="hidden items-center gap-1.5 text-xs font-mono px-3 py-2 rounded-lg bg-gold text-bg font-semibold hover:opacity-90 transition">
@@ -85,7 +85,7 @@
   <main class="max-w-5xl mx-auto px-4 sm:px-6 pt-6">
 
     <!-- ===================== STATS ===================== -->
-    <section class="grid grid-cols-3 gap-3 mb-6">
+    <section class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
       <div class="bg-surface border border-line rounded-xl p-4">
         <p class="text-[11px] uppercase tracking-wider text-muted mb-1">Days Logged</p>
         <p id="statLogged" class="font-display text-2xl sm:text-3xl">0</p>
@@ -98,6 +98,10 @@
         <p class="text-[11px] uppercase tracking-wider text-muted mb-1">Avg kcal / day</p>
         <p id="statAvg" class="font-display text-2xl sm:text-3xl">0</p>
       </div>
+      <div class="bg-surface border border-line rounded-xl p-4">
+        <p class="text-[11px] uppercase tracking-wider text-teal mb-1">Avg Protein / day</p>
+        <p id="statAvgProtein" class="font-display text-2xl sm:text-3xl">0<span class="text-xs font-mono text-muted font-normal ml-1">g</span></p>
+      </div>
     </section>
 
     <!-- ===================== LEGEND ===================== -->
@@ -106,7 +110,7 @@
       <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-gold inline-block"></span>On target</span>
       <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rust inline-block"></span>Over goal</span>
       <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full border border-line inline-block"></span>No entry</span>
-      <span id="goalLabel" class="ml-auto">Goal: 2000 kcal</span>
+      <span id="goalLabel" class="ml-auto text-ink font-medium">Goal: 2000 kcal • 140g protein</span>
     </section>
 
     <!-- ===================== CALENDAR ===================== -->
@@ -120,45 +124,119 @@
       <div id="calendarGrid" class="grid grid-cols-7 gap-1.5 sm:gap-2"></div>
     </section>
 
-    <p class="text-center text-[11px] text-muted mt-6 font-mono">Data is stored only in this browser (localStorage). Export a backup from Settings.</p>
+
   </main>
 
-  <!-- ===================== DAY MODAL ===================== -->
-  <div id="dayModal" class="fixed inset-0 z-40 hidden items-center justify-center p-3 sm:p-6 modal-backdrop bg-black/60">
-    <div class="bg-surface border border-line rounded-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto scroll-thin">
-      <div class="sticky top-0 bg-surface border-b border-line px-5 py-4 flex items-start justify-between gap-3 z-10">
-        <p class="font-display text-lg" id="dayModalDateLabel">—</p>
-        <button onclick="closeDayModal()" aria-label="Close" class="w-8 h-8 flex items-center justify-center rounded-lg border border-line hover:border-gold text-muted hover:text-ink transition">✕</button>
+  <!-- ===================== FULL SCREEN DAY MODAL ===================== -->
+  <div id="dayModal" class="fixed inset-0 z-50 hidden flex-col bg-bg w-full h-full overflow-hidden">
+    <!-- Modal Header -->
+    <div class="bg-surface border-b border-line px-4 sm:px-8 py-4 flex items-center justify-between shrink-0">
+      <div>
+        <p class="text-[11px] tracking-[0.2em] text-gold font-mono uppercase">Daily Nutrition Details</p>
+        <h2 class="font-display text-xl sm:text-2xl font-semibold tracking-wide uppercase" id="dayModalDateLabel">—</h2>
       </div>
+      <button onclick="closeDayModal()" aria-label="Close modal" class="w-10 h-10 flex items-center justify-center rounded-xl border border-line hover:border-gold text-muted hover:text-ink bg-surface2 transition">
+        ✕
+      </button>
+    </div>
 
-      <div class="px-5 py-4">
-        <div class="mb-5">
-          <div class="flex items-baseline justify-between mb-1.5">
-            <span id="dayModalTotal" class="font-mono text-2xl">0 kcal</span>
-            <span id="dayModalDiff" class="font-mono text-xs text-muted">of 2000</span>
+    <!-- Modal Content Body (Scrollable) -->
+    <div class="flex-1 overflow-y-auto p-4 sm:p-8 max-w-4xl mx-auto w-full space-y-6 scroll-thin">
+      
+      <!-- Nutrition Summary Section -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-surface border border-line rounded-2xl p-5">
+        <!-- Calories Card -->
+        <div class="space-y-2">
+          <div class="flex items-baseline justify-between">
+            <span class="text-xs uppercase font-mono tracking-wider text-muted">Calories (kcal)</span>
+            <span id="dayModalDiff" class="font-mono text-xs text-muted">0 / 2000 kcal</span>
           </div>
-          <div class="h-2 rounded-full bg-surface2 overflow-hidden border border-line">
-            <div id="dayModalBar" class="h-full rounded-full bg-teal" style="width:0%"></div>
+          <p id="dayModalTotal" class="font-display text-3xl sm:text-4xl text-gold">0 kcal</p>
+          <div class="h-2.5 rounded-full bg-surface2 overflow-hidden border border-line">
+            <div id="dayModalBar" class="h-full rounded-full bg-teal transition-all duration-300" style="width:0%"></div>
           </div>
         </div>
 
-        <div id="mealSections" class="space-y-5"></div>
-
-        <div class="mt-5">
-          <label class="text-[11px] uppercase tracking-wider text-muted block mb-1.5">Notes</label>
-          <textarea id="dayModalNotes" onchange="updateNotes(this.value)" rows="2" placeholder="Optional notes…" class="w-full bg-surface2 border border-line rounded-lg px-3 py-2 text-sm placeholder:text-muted focus:border-gold"></textarea>
+        <!-- Protein Card -->
+        <div class="space-y-2 border-t md:border-t-0 md:border-l border-line pt-4 md:pt-0 md:pl-5">
+          <div class="flex items-baseline justify-between">
+            <span class="text-xs uppercase font-mono tracking-wider text-muted">Protein (g)</span>
+            <span id="dayModalProteinDiff" class="font-mono text-xs text-muted">0 / 140 g</span>
+          </div>
+          <p id="dayModalProteinTotal" class="font-display text-3xl sm:text-4xl text-teal">0 g</p>
+          <div class="h-2.5 rounded-full bg-surface2 overflow-hidden border border-line">
+            <div id="dayModalProteinBar" class="h-full rounded-full bg-teal transition-all duration-300" style="width:0%"></div>
+          </div>
         </div>
       </div>
 
-      <div class="sticky bottom-0 bg-surface border-t border-line px-5 py-3 flex items-center justify-between">
-        <button onclick="clearDay()" class="text-xs font-mono text-rust hover:underline">Clear day</button>
-        <button onclick="closeDayModal()" class="px-4 py-2 rounded-lg bg-gold text-bg text-sm font-semibold hover:opacity-90 transition">Done</button>
+      <!-- Add Log Item Form (Direct Entry - No Meal Selection) -->
+      <div class="bg-surface border border-line rounded-2xl p-5">
+        <h3 class="font-display text-base uppercase tracking-wider text-ink mb-4 flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-gold"></span> Add Food Entry
+        </h3>
+        <form onsubmit="handleAddMealForm(event)" class="space-y-3">
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+            <div class="sm:col-span-6">
+              <label class="text-[11px] uppercase font-mono tracking-wider text-muted block mb-1">Food Name *</label>
+              <input id="foodName" type="text" required placeholder="e.g. Chicken Salad, Protein Shake" class="w-full bg-surface2 border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:border-gold">
+            </div>
+            <div class="sm:col-span-3">
+              <label class="text-[11px] uppercase font-mono tracking-wider text-muted block mb-1">Calories (kcal) *</label>
+              <input id="foodCal" type="number" min="0" required placeholder="e.g. 450" class="w-full bg-surface2 border border-line rounded-xl px-3.5 py-2.5 text-sm font-mono placeholder:text-muted focus:border-gold">
+            </div>
+            <div class="sm:col-span-3">
+              <label class="text-[11px] uppercase font-mono tracking-wider text-muted block mb-1">Protein (g)</label>
+              <input id="foodProtein" type="number" min="0" placeholder="e.g. 35" class="w-full bg-surface2 border border-line rounded-xl px-3.5 py-2.5 text-sm font-mono placeholder:text-muted focus:border-gold">
+            </div>
+          </div>
+          <div>
+            <label class="text-[11px] uppercase font-mono tracking-wider text-muted block mb-1">Entry Note (Optional)</label>
+            <input id="foodNote" type="text" placeholder="e.g. Extra dressing, post-workout" class="w-full bg-surface2 border border-line rounded-xl px-3.5 py-2 text-sm placeholder:text-muted focus:border-gold">
+          </div>
+          <div class="pt-1">
+            <button type="submit" class="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gold text-bg text-sm font-semibold hover:opacity-90 transition flex items-center justify-center gap-2">
+              <span>+ Add Entry</span>
+            </button>
+          </div>
+        </form>
       </div>
+
+      <!-- Logged Food Items List -->
+      <div class="bg-surface border border-line rounded-2xl p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-display text-base uppercase tracking-wider text-ink flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-teal"></span> Today's Logged Items
+          </h3>
+          <span id="itemCountBadge" class="text-xs font-mono text-muted bg-surface2 px-2.5 py-1 rounded-md border border-line">0 items</span>
+        </div>
+        
+        <div id="mealItemsList" class="space-y-3">
+          <!-- Rendered via JS -->
+        </div>
+      </div>
+
+      <!-- Day Notes Section -->
+      <div class="bg-surface border border-line rounded-2xl p-5">
+        <label class="font-display text-base uppercase tracking-wider text-ink block mb-2">Day Notes</label>
+        <textarea id="dayModalNotes" onchange="updateNotes(this.value)" rows="3" placeholder="How did you feel today? Any overall workout or diet notes…" class="w-full bg-surface2 border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:border-gold"></textarea>
+      </div>
+
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="bg-surface border-t border-line px-4 sm:px-8 py-3.5 flex items-center justify-between shrink-0">
+      <button onclick="confirmClearDay()" class="px-4 py-2 rounded-xl border border-rust/40 text-rust text-xs font-mono hover:bg-rustSoft transition">
+        Clear Day
+      </button>
+      <button onclick="closeDayModal()" class="px-6 py-2.5 rounded-xl bg-gold text-bg text-sm font-semibold hover:opacity-90 transition">
+        Done
+      </button>
     </div>
   </div>
 
   <!-- ===================== SETTINGS MODAL ===================== -->
-  <div id="settingsModal" class="fixed inset-0 z-40 hidden items-center justify-center p-3 sm:p-6 modal-backdrop bg-black/60">
+  <div id="settingsModal" class="fixed inset-0 z-50 hidden items-center justify-center p-3 sm:p-6 modal-backdrop bg-black/60">
     <div class="bg-surface border border-line rounded-2xl w-full max-w-md max-h-[92vh] overflow-y-auto scroll-thin">
       <div class="border-b border-line px-5 py-4 flex items-center justify-between">
         <h2 class="font-display text-lg uppercase tracking-wide">Settings</h2>
@@ -167,10 +245,14 @@
 
       <div class="px-5 py-5 space-y-5">
         <div>
-          <label class="text-[11px] uppercase tracking-wider text-muted block mb-1.5">Daily calorie goal</label>
+          <label class="text-[11px] uppercase tracking-wider text-muted block mb-1.5">Daily Calorie Goal (kcal)</label>
           <input id="settingsGoal" type="number" min="0" step="10" class="w-full bg-surface2 border border-line rounded-lg px-3 py-2 text-sm font-mono focus:border-gold">
         </div>
-        <button onclick="saveSettings()" class="w-full px-4 py-2.5 rounded-lg bg-gold text-bg text-sm font-semibold hover:opacity-90 transition">Save settings</button>
+        <div>
+          <label class="text-[11px] uppercase tracking-wider text-muted block mb-1.5">Daily Protein Goal (g)</label>
+          <input id="settingsProteinGoal" type="number" min="0" step="5" class="w-full bg-surface2 border border-line rounded-lg px-3 py-2 text-sm font-mono focus:border-gold">
+        </div>
+        <button onclick="saveSettings()" class="w-full px-4 py-2.5 rounded-lg bg-gold text-bg text-sm font-semibold hover:opacity-90 transition">Save Settings</button>
 
         <div class="border-t border-line pt-5">
           <p class="text-[11px] uppercase tracking-wider text-muted mb-2">Backup</p>
@@ -185,8 +267,26 @@
 
         <div class="border-t border-line pt-5">
           <p class="text-[11px] uppercase tracking-wider text-rust mb-2">Danger zone</p>
-          <button onclick="resetAll()" class="w-full px-3 py-2 rounded-lg border border-rust text-rust text-sm hover:bg-rustSoft transition">Reset all data</button>
+          <button onclick="confirmResetAll()" class="w-full px-3 py-2 rounded-lg border border-rust text-rust text-sm hover:bg-rustSoft transition">Reset all data</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== CUSTOM CONFIRM MODAL ===================== -->
+  <div id="confirmModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+    <div class="bg-surface border border-line rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl">
+      <div class="p-5 space-y-3">
+        <h3 id="confirmModalTitle" class="font-display text-lg uppercase tracking-wide text-ink">Confirm Action</h3>
+        <p id="confirmModalMessage" class="text-xs text-muted leading-relaxed">Are you sure you want to proceed?</p>
+      </div>
+      <div class="bg-surface2 border-t border-line px-5 py-3 flex items-center justify-end gap-3">
+        <button id="confirmModalCancelBtn" onclick="closeConfirmModal()" class="px-4 py-2 rounded-lg border border-line text-muted hover:text-ink text-xs font-semibold transition">
+          Cancel
+        </button>
+        <button id="confirmModalConfirmBtn" class="px-4 py-2 rounded-lg bg-rust text-bg text-xs font-semibold hover:opacity-90 transition">
+          Confirm
+        </button>
       </div>
     </div>
   </div>
@@ -194,12 +294,6 @@
 <script>
   // ===================== STATE =====================
   const STORAGE_KEY = 'calorie_tracker_v1';
-  const MEAL_TYPES = [
-    { key: 'breakfast', label: 'Breakfast' },
-    { key: 'lunch',     label: 'Lunch' },
-    { key: 'dinner',    label: 'Dinner' },
-    { key: 'snacks',    label: 'Snacks' },
-  ];
   const WEEKDAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
   function todayISO(){ return new Date().toISOString().slice(0,10); }
@@ -207,7 +301,7 @@
   function isoDate(y, m, d){ return `${y}-${pad(m + 1)}-${pad(d)}`; }
 
   function defaultState(){
-    return { goal: 2000, days: {} };
+    return { goal: 2000, proteinGoal: 140, days: {} };
   }
 
   function loadState(){
@@ -215,7 +309,9 @@
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return defaultState();
       const parsed = JSON.parse(raw);
-      return Object.assign(defaultState(), parsed);
+      const merged = Object.assign(defaultState(), parsed);
+      if (!merged.proteinGoal) merged.proteinGoal = 140;
+      return merged;
     } catch (e) {
       console.error('Failed to load data', e);
       return defaultState();
@@ -246,6 +342,12 @@
     const day = getDay(dateKey);
     if (!day || !day.meals) return 0;
     return day.meals.reduce((sum, m) => sum + Number(m.cal || 0), 0);
+  }
+
+  function dayProteinTotal(dateKey){
+    const day = getDay(dateKey);
+    if (!day || !day.meals) return 0;
+    return day.meals.reduce((sum, m) => sum + Number(m.protein || 0), 0);
   }
 
   function isLogged(dateKey){
@@ -288,12 +390,20 @@
     return Math.round(total / loggedKeys.length);
   }
 
+  function avgProtein(){
+    const loggedKeys = Object.keys(state.days).filter(k => isLogged(k));
+    if (loggedKeys.length === 0) return 0;
+    const total = loggedKeys.reduce((sum, k) => sum + dayProteinTotal(k), 0);
+    return Math.round(total / loggedKeys.length);
+  }
+
   // ===================== RENDER: STATS =====================
   function renderStats(){
     document.getElementById('statLogged').textContent = daysLoggedCount();
     document.getElementById('statStreak').textContent = computeStreak();
     document.getElementById('statAvg').textContent = avgCalories();
-    document.getElementById('goalLabel').textContent = 'Goal: ' + state.goal + ' kcal';
+    document.getElementById('statAvgProtein').innerHTML = `${avgProtein()}<span class="text-xs font-mono text-muted font-normal ml-1">g</span>`;
+    document.getElementById('goalLabel').textContent = `Goal: ${state.goal} kcal • ${state.proteinGoal || 140}g protein`;
   }
 
   // ===================== RENDER: CALENDAR =====================
@@ -327,27 +437,32 @@
       const key = isoDate(viewYear, viewMonth, d);
       const status = statusFor(key);
       const color = statusColor(status);
-      const total = dayTotal(key);
-      const ratio = state.goal > 0 ? total / state.goal : 0;
+      const totalCal = dayTotal(key);
+      const totalProtein = dayProteinTotal(key);
+      const logged = isLogged(key);
+      const ratio = state.goal > 0 ? totalCal / state.goal : 0;
       const barPct = Math.min(Math.max(ratio, 0), 1.5) / 1.5 * 100;
       const isToday = key === todayKey;
 
-      const dots = MEAL_TYPES.map(mt => {
-        const day = getDay(key);
-        const filled = day && day.meals && day.meals.some(m => m.type === mt.key);
-        return `<span class="w-1 h-1 rounded-full ${filled ? 'bg-gold' : 'bg-line'}"></span>`;
-      }).join('');
-
       html += `
         <button onclick="openDayModal('${key}')"
-          class="day-cell relative rounded-lg border ${isToday ? 'border-gold' : 'border-line'} hover:border-gold transition p-1.5 sm:p-2 flex flex-col justify-between text-left bg-surface2 overflow-hidden">
-          <div class="flex items-center justify-between">
-            <span class="font-mono text-[10px] sm:text-xs text-muted">${d}</span>
-            ${isToday ? '<span class="w-1.5 h-1.5 rounded-full bg-gold"></span>' : ''}
+          class="day-cell relative rounded-xl border ${isToday ? 'border-gold bg-surface2 shadow-[0_0_10px_rgba(201,162,39,0.15)]' : 'border-line/70 bg-surface2/90'} hover:border-gold hover:bg-surface2 transition-all duration-200 p-1.5 sm:p-2 flex flex-col justify-between text-left overflow-hidden group">
+          <div class="flex items-center justify-between w-full z-10 leading-none">
+            <span class="font-mono text-[11px] sm:text-xs ${isToday ? 'font-bold text-gold' : 'text-muted group-hover:text-ink'}">${d}</span>
+            ${isToday ? '<span class="w-1.5 h-1.5 rounded-full bg-gold shadow-[0_0_6px_#C9A227] shrink-0"></span>' : ''}
           </div>
-          <div class="flex items-center gap-1 mb-1">${dots}</div>
-          <div class="absolute left-0 right-0 bottom-0 h-full pointer-events-none" style="z-index:0;">
-            <div class="bar-fill absolute left-0 right-0 bottom-0" style="height:${status === 'empty' ? 0 : barPct}%; background:${color}22; border-top:2px solid ${status === 'empty' ? 'transparent' : color};"></div>
+          
+          <div class="z-10 my-auto space-y-0.5 overflow-hidden">
+            ${logged ? `
+              <div class="flex items-baseline gap-0.5 leading-none">
+                <span class="font-display font-bold text-ink text-xs sm:text-sm tracking-tight">${totalCal}</span>
+                <span class="font-mono text-[8px] sm:text-[9px] text-muted font-normal">cal</span>
+              </div>
+              <div class="flex items-baseline gap-0.5 leading-none">
+                <span class="font-display font-bold text-teal text-[11px] sm:text-xs tracking-tight">${totalProtein}g</span>
+                <span class="font-mono text-[8px] sm:text-[9px] text-teal/70 font-normal">pro</span>
+              </div>
+            ` : ''}
           </div>
         </button>`;
     }
@@ -373,11 +488,14 @@
     const modal = document.getElementById('dayModal');
     modal.classList.remove('hidden');
     modal.classList.add('flex');
+    document.body.style.overflow = 'hidden';
   }
 
   function closeDayModal(){
-    document.getElementById('dayModal').classList.add('hidden');
-    document.getElementById('dayModal').classList.remove('flex');
+    const modal = document.getElementById('dayModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.body.style.overflow = '';
     activeDate = null;
     renderAll();
   }
@@ -396,72 +514,100 @@
     document.getElementById('dayModalDateLabel').textContent =
       d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
-    const total = dayTotal(key);
+    // Calorie stats
+    const totalCal = dayTotal(key);
     const status = statusFor(key);
     const color = statusColor(status === 'empty' ? 'under' : status);
-    document.getElementById('dayModalTotal').textContent = total + ' kcal';
+    document.getElementById('dayModalTotal').textContent = totalCal + ' kcal';
     document.getElementById('dayModalTotal').style.color = status === 'empty' ? '#ECEDEF' : color;
-    const diff = total - state.goal;
-    document.getElementById('dayModalDiff').textContent = `of ${state.goal} kcal (${diff > 0 ? '+' : ''}${diff})`;
-    const barPct = Math.min(Math.max(state.goal > 0 ? total / state.goal : 0, 0), 1.5) / 1.5 * 100;
-    const bar = document.getElementById('dayModalBar');
-    bar.style.width = barPct + '%';
-    bar.style.background = color;
+    
+    const diffCal = totalCal - state.goal;
+    document.getElementById('dayModalDiff').textContent = `${totalCal} / ${state.goal} kcal (${diffCal > 0 ? '+' : ''}${diffCal})`;
+    const calPct = Math.min(Math.max(state.goal > 0 ? totalCal / state.goal : 0, 0), 1.5) / 1.5 * 100;
+    const barCal = document.getElementById('dayModalBar');
+    barCal.style.width = calPct + '%';
+    barCal.style.background = color;
 
+    // Protein stats
+    const totalProtein = dayProteinTotal(key);
+    const pGoal = state.proteinGoal || 140;
+    const diffProtein = totalProtein - pGoal;
+    document.getElementById('dayModalProteinTotal').textContent = totalProtein + ' g';
+    document.getElementById('dayModalProteinDiff').textContent = `${totalProtein} / ${pGoal} g (${diffProtein > 0 ? '+' : ''}${diffProtein})`;
+    const proteinPct = Math.min(Math.max(pGoal > 0 ? totalProtein / pGoal : 0, 0), 1.5) / 1.5 * 100;
+    const barProtein = document.getElementById('dayModalProteinBar');
+    barProtein.style.width = proteinPct + '%';
+
+    // Day notes
     const day = getDay(key);
     document.getElementById('dayModalNotes').value = day ? (day.notes || '') : '';
 
-    const container = document.getElementById('mealSections');
-    container.innerHTML = MEAL_TYPES.map(mt => {
-      const items = day && day.meals ? day.meals.filter(m => m.type === mt.key) : [];
-      const itemsHtml = items.map(m => {
-        const globalIdx = day.meals.indexOf(m);
-        return `
-          <div class="flex items-center justify-between bg-surface2 border border-line rounded-lg px-3 py-2">
-            <span class="text-sm truncate pr-2">${escapeHtml(m.name)}</span>
-            <div class="flex items-center gap-2 shrink-0">
-              <span class="font-mono text-xs text-muted">${m.cal} kcal</span>
-              <button onclick="removeMeal(${globalIdx})" class="text-muted hover:text-rust transition" aria-label="Remove">✕</button>
-            </div>
-          </div>`;
-      }).join('');
+    // Logged Meals / Items List
+    const items = day && day.meals ? day.meals : [];
+    document.getElementById('itemCountBadge').textContent = `${items.length} item${items.length === 1 ? '' : 's'}`;
 
-      return `
-        <div>
-          <div class="flex items-center justify-between mb-2">
-            <p class="text-[11px] uppercase tracking-wider text-muted">${mt.label}</p>
-            <p class="font-mono text-xs text-muted">${items.reduce((s,m)=>s+Number(m.cal||0),0)} kcal</p>
-          </div>
-          <div class="space-y-1.5 mb-2">${itemsHtml}</div>
-          <div class="flex gap-1.5">
-            <input id="foodName-${mt.key}" type="text" placeholder="Food item" class="flex-1 min-w-0 bg-surface2 border border-line rounded-lg px-2.5 py-1.5 text-sm placeholder:text-muted focus:border-gold">
-            <input id="foodCal-${mt.key}" type="number" min="0" placeholder="kcal" class="w-20 bg-surface2 border border-line rounded-lg px-2.5 py-1.5 text-sm font-mono placeholder:text-muted focus:border-gold">
-            <button onclick="addMeal('${mt.key}')" class="px-3 rounded-lg bg-gold text-bg text-sm font-semibold hover:opacity-90 transition shrink-0">+</button>
-          </div>
+    const listContainer = document.getElementById('mealItemsList');
+    if (items.length === 0) {
+      listContainer.innerHTML = `
+        <div class="text-center py-8 border border-dashed border-line rounded-xl">
+          <p class="text-sm text-muted">No items logged for this day yet.</p>
+          <p class="text-xs text-muted/70 mt-1">Use the form above to add foods, calories, and protein.</p>
         </div>`;
-    }).join('');
+    } else {
+      listContainer.innerHTML = items.map((m, idx) => `
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between bg-surface2 border border-line rounded-xl p-3.5 gap-2 hover:border-line/80 transition">
+          <div class="space-y-1 min-w-0 flex-1">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-medium text-ink text-sm sm:text-base">${escapeHtml(m.name)}</span>
+            </div>
+            ${m.note ? `<p class="text-xs text-muted italic flex items-center gap-1">💬 ${escapeHtml(m.note)}</p>` : ''}
+          </div>
+          <div class="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-line">
+            <div class="flex items-center gap-2 font-mono text-xs">
+              <span class="bg-surface px-2.5 py-1 rounded-lg border border-line text-ink font-semibold">${m.cal} kcal</span>
+              <span class="bg-surface px-2.5 py-1 rounded-lg border border-teal/30 text-teal font-semibold">${m.protein || 0}g protein</span>
+            </div>
+            <button onclick="removeMeal(${idx})" class="w-8 h-8 flex items-center justify-center rounded-lg border border-line hover:border-rust hover:text-rust text-muted transition" aria-label="Delete item">
+              ✕
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
   }
 
-  function addMeal(typeKey){
-    const nameInput = document.getElementById('foodName-' + typeKey);
-    const calInput = document.getElementById('foodCal-' + typeKey);
+  function handleAddMealForm(event){
+    event.preventDefault();
+    const nameInput = document.getElementById('foodName');
+    const calInput = document.getElementById('foodCal');
+    const proteinInput = document.getElementById('foodProtein');
+    const noteInput = document.getElementById('foodNote');
+
     const name = nameInput.value.trim();
     const cal = Number(calInput.value);
-    if (!name || !cal || cal <= 0) {
-      nameInput.classList.toggle('border-rust', !name);
-      calInput.classList.toggle('border-rust', !cal || cal <= 0);
-      return;
-    }
+    const protein = Number(proteinInput.value) || 0;
+    const note = noteInput.value.trim();
+
+    if (!name || cal < 0) return;
+
     const day = ensureDay(activeDate);
-    day.meals.push({ type: typeKey, name, cal });
+    day.meals.push({ name, cal, protein, note });
     saveState();
+
+    // Reset inputs
+    nameInput.value = '';
+    calInput.value = '';
+    proteinInput.value = '';
+    noteInput.value = '';
+    nameInput.focus();
+
     renderDayModal();
   }
 
-  function removeMeal(globalIdx){
+  function removeMeal(idx){
     const day = getDay(activeDate);
-    if (!day) return;
-    day.meals.splice(globalIdx, 1);
+    if (!day || !day.meals) return;
+    day.meals.splice(idx, 1);
     saveState();
     renderDayModal();
   }
@@ -472,16 +618,74 @@
     saveState();
   }
 
-  function clearDay(){
-    if (!confirm('Clear all meals and notes for this day?')) return;
-    delete state.days[activeDate];
-    saveState();
-    renderDayModal();
+  // ===================== CONFIRMATION MODAL =====================
+  let onConfirmCallback = null;
+
+  function showConfirmModal({ title, message, confirmText = 'Confirm', confirmStyle = 'danger', onConfirm }){
+    document.getElementById('confirmModalTitle').textContent = title;
+    document.getElementById('confirmModalMessage').textContent = message;
+    
+    const confirmBtn = document.getElementById('confirmModalConfirmBtn');
+    confirmBtn.textContent = confirmText;
+    
+    if (confirmStyle === 'danger') {
+      confirmBtn.className = 'px-4 py-2 rounded-lg bg-rust text-bg text-xs font-semibold hover:opacity-90 transition';
+    } else {
+      confirmBtn.className = 'px-4 py-2 rounded-lg bg-gold text-bg text-xs font-semibold hover:opacity-90 transition';
+    }
+
+    onConfirmCallback = onConfirm;
+
+    const modal = document.getElementById('confirmModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+
+  function closeConfirmModal(){
+    const modal = document.getElementById('confirmModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    onConfirmCallback = null;
+  }
+
+  document.getElementById('confirmModalConfirmBtn').addEventListener('click', () => {
+    if (onConfirmCallback) onConfirmCallback();
+    closeConfirmModal();
+  });
+
+  function confirmClearDay(){
+    showConfirmModal({
+      title: 'Clear Day Data?',
+      message: 'Are you sure you want to clear all logged food items and notes for this day?',
+      confirmText: 'Clear Day',
+      confirmStyle: 'danger',
+      onConfirm: () => {
+        delete state.days[activeDate];
+        saveState();
+        renderDayModal();
+      }
+    });
+  }
+
+  function confirmResetAll(){
+    showConfirmModal({
+      title: 'Reset All Data?',
+      message: 'This will permanently delete all logged days, calorie & protein goals, and settings. This action cannot be undone.',
+      confirmText: 'Reset Everything',
+      confirmStyle: 'danger',
+      onConfirm: () => {
+        state = defaultState();
+        saveState();
+        closeSettings();
+        renderAll();
+      }
+    });
   }
 
   // ===================== SETTINGS =====================
   function openSettings(){
     document.getElementById('settingsGoal').value = state.goal;
+    document.getElementById('settingsProteinGoal').value = state.proteinGoal || 140;
     const modal = document.getElementById('settingsModal');
     modal.classList.remove('hidden');
     modal.classList.add('flex');
@@ -494,7 +698,9 @@
 
   function saveSettings(){
     const newGoal = Number(document.getElementById('settingsGoal').value);
+    const newProteinGoal = Number(document.getElementById('settingsProteinGoal').value);
     if (newGoal > 0) state.goal = newGoal;
+    if (newProteinGoal > 0) state.proteinGoal = newProteinGoal;
     saveState();
     closeSettings();
     renderAll();
@@ -506,7 +712,7 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `calorie-tracker-backup-${todayISO()}.json`;
+    a.download = `calorie-protein-tracker-backup-${todayISO()}.json`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -519,6 +725,7 @@
         const parsed = JSON.parse(e.target.result);
         if (!parsed.goal || typeof parsed.days !== 'object') throw new Error('Invalid file');
         state = Object.assign(defaultState(), parsed);
+        if (!state.proteinGoal) state.proteinGoal = 140;
         saveState();
         closeSettings();
         renderAll();
@@ -530,23 +737,19 @@
     reader.readAsText(file);
   }
 
-  function resetAll(){
-    if (!confirm('This will permanently delete all logged days and settings. Continue?')) return;
-    state = defaultState();
-    saveState();
-    closeSettings();
-    renderAll();
-  }
-
   // ===================== INIT =====================
-  document.getElementById('dayModal').addEventListener('click', e => {
-    if (e.target.id === 'dayModal') closeDayModal();
-  });
   document.getElementById('settingsModal').addEventListener('click', e => {
     if (e.target.id === 'settingsModal') closeSettings();
   });
+  document.getElementById('confirmModal').addEventListener('click', e => {
+    if (e.target.id === 'confirmModal') closeConfirmModal();
+  });
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { closeDayModal(); closeSettings(); }
+    if (e.key === 'Escape') { 
+      closeDayModal(); 
+      closeSettings(); 
+      closeConfirmModal();
+    }
   });
 
   renderAll();
