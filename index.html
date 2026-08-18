@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calorie Tracker</title>
+
+<!-- PWA -->
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#0F1216">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Calories">
+<link rel="icon" href="./icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="./icons/favicon-16.png" sizes="16x16" type="image/png">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          bg: '#0F1216',
+          surface: '#171B21',
+          surface2: '#1D222A',
+          line: '#2A303B',
+          ink: '#ECEDEF',
+          muted: '#8991A0',
+          gold: '#C9A227',
+          teal: '#4FB0A5',
+          rust: '#D9603B',
+          rustSoft: '#33221C',
+        },
+        fontFamily: {
+          display: ['Oswald', 'sans-serif'],
+          body: ['Inter', 'sans-serif'],
+          mono: ['"JetBrains Mono"', 'monospace'],
+        }
+      }
+    }
+  }
+</script>
+<style>
+  html, body { background:#0F1216; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background:#2A303B; border-radius: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  .day-cell { aspect-ratio: 1 / 1; }
+  .bar-fill { transition: height .35s ease, background-color .35s ease; }
+  .modal-backdrop { backdrop-filter: blur(6px); }
+  input:focus, textarea:focus, button:focus-visible { outline: 2px solid #C9A227; outline-offset: 2px; }
+  .scroll-thin::-webkit-scrollbar { width: 6px; }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body class="font-body bg-bg text-ink min-h-screen pb-16">
+
+  <!-- ===================== HEADER ===================== -->
+  <header class="border-b border-line bg-surface/60 sticky top-0 z-30 backdrop-blur">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-3">
+      <div>
+        <p class="text-[11px] tracking-[0.25em] text-gold font-mono uppercase">Daily Log</p>
+        <h1 class="font-display text-xl sm:text-2xl font-semibold tracking-wide uppercase leading-tight">Calorie Tracker</h1>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="installBtn" onclick="installApp()" class="hidden items-center gap-1.5 text-xs font-mono px-3 py-2 rounded-lg bg-gold text-bg font-semibold hover:opacity-90 transition">
+          Install App
+        </button>
+        <button onclick="jumpToToday()" class="hidden sm:inline-flex items-center gap-1.5 text-xs font-mono px-3 py-2 rounded-lg border border-line hover:border-gold text-muted hover:text-ink transition">
+          Log Today
+        </button>
+        <button onclick="openSettings()" aria-label="Settings" class="w-9 h-9 flex items-center justify-center rounded-lg border border-line hover:border-gold text-muted hover:text-ink transition">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-4 sm:px-6 pt-6">
+
+    <!-- ===================== STATS ===================== -->
+    <section class="grid grid-cols-3 gap-3 mb-6">
+      <div class="bg-surface border border-line rounded-xl p-4">
+        <p class="text-[11px] uppercase tracking-wider text-muted mb-1">Days Logged</p>
+        <p id="statLogged" class="font-display text-2xl sm:text-3xl">0</p>
+      </div>
+      <div class="bg-surface border border-line rounded-xl p-4">
+        <p class="text-[11px] uppercase tracking-wider text-muted mb-1">Current Streak</p>
+        <p id="statStreak" class="font-display text-2xl sm:text-3xl">0</p>
+      </div>
+      <div class="bg-surface border border-line rounded-xl p-4">
+        <p class="text-[11px] uppercase tracking-wider text-muted mb-1">Avg kcal / day</p>
+        <p id="statAvg" class="font-display text-2xl sm:text-3xl">0</p>
+      </div>
+    </section>
+
+    <!-- ===================== LEGEND ===================== -->
+    <section class="flex flex-wrap items-center gap-4 mb-4 text-xs text-muted font-mono">
+      <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-teal inline-block"></span>Under goal</span>
+      <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-gold inline-block"></span>On target</span>
+      <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rust inline-block"></span>Over goal</span>
+      <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full border border-line inline-block"></span>No entry</span>
+      <span id="goalLabel" class="ml-auto">Goal: 2000 kcal</span>
+    </section>
+
+    <!-- ===================== CALENDAR ===================== -->
+    <section class="bg-surface border border-line rounded-2xl p-3 sm:p-5">
+      <div class="flex items-center justify-between mb-4">
+        <button onclick="changeMonth(-1)" aria-label="Previous month" class="w-8 h-8 flex items-center justify-center rounded-lg border border-line hover:border-gold text-muted hover:text-ink transition">‹</button>
+        <p id="monthLabel" class="font-display text-lg uppercase tracking-wide">—</p>
+        <button onclick="changeMonth(1)" aria-label="Next month" class="w-8 h-8 flex items-center justify-center rounded-lg border border-line hover:border-gold text-muted hover:text-ink transition">›</button>
+      </div>
+      <div id="weekdayRow" class="grid grid-cols-7 gap-1.5 sm:gap-2 mb-2 text-center"></div>
+      <div id="calendarGrid" class="grid grid-cols-7 gap-1.5 sm:gap-2"></div>
+    </section>
+
+    <p class="text-center text-[11px] text-muted mt-6 font-mono">Data is stored only in this browser (localStorage). Export a backup from Settings.</p>
+  </main>
+
+  <!-- ===================== DAY MODAL ===================== -->
+  <div id="dayModal" class="fixed inset-0 z-40 hidden items-center justify-center p-3 sm:p-6 modal-backdrop bg-black/60">
+    <div class="bg-surface border border-line rounded-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto scroll-thin">
+      <div class="sticky top-0 bg-surface border-b border-line px-5 py-4 flex items-start justify-between gap-3 z-10">
+        <p class="font-display text-lg" id="dayModalDateLabel">—</p>
+        <button onclick="closeDayModal()" aria-label="Close" class="w-8 h-8 flex items-center justify-center rounded-lg border border-line hover:border-gold text-muted hover:text-ink transition">✕</button>
+      </div>
+
+      <div class="px-5 py-4">
+        <div class="mb-5">
+          <div class="flex items-baseline justify-between mb-1.5">
+            <span id="dayModalTotal" class="font-mono text-2xl">0 kcal</span>
+            <span id="dayModalDiff" class="font-mono text-xs text-muted">of 2000</span>
+          </div>
+          <div class="h-2 rounded-full bg-surface2 overflow-hidden border border-line">
+            <div id="dayModalBar" class="h-full rounded-full bg-teal" style="width:0%"></div>
+          </div>
+        </div>
+
+        <div id="mealSections" class="space-y-5"></div>
+
+        <div class="mt-5">
+          <label class="text-[11px] uppercase tracking-wider text-muted block mb-1.5">Notes</label>
+          <textarea id="dayModalNotes" onchange="updateNotes(this.value)" rows="2" placeholder="Optional notes…" class="w-full bg-surface2 border border-line rounded-lg px-3 py-2 text-sm placeholder:text-muted focus:border-gold"></textarea>
+        </div>
+      </div>
+
+      <div class="sticky bottom-0 bg-surface border-t border-line px-5 py-3 flex items-center justify-between">
+        <button onclick="clearDay()" class="text-xs font-mono text-rust hover:underline">Clear day</button>
+        <button onclick="closeDayModal()" class="px-4 py-2 rounded-lg bg-gold text-bg text-sm font-semibold hover:opacity-90 transition">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== SETTINGS MODAL ===================== -->
+  <div id="settingsModal" class="fixed inset-0 z-40 hidden items-center justify-center p-3 sm:p-6 modal-backdrop bg-black/60">
+    <div class="bg-surface border border-line rounded-2xl w-full max-w-md max-h-[92vh] overflow-y-auto scroll-thin">
+      <div class="border-b border-line px-5 py-4 flex items-center justify-between">
+        <h2 class="font-display text-lg uppercase tracking-wide">Settings</h2>
+        <button onclick="closeSettings()" aria-label="Close" class="w-8 h-8 flex items-center justify-center rounded-lg border border-line hover:border-gold text-muted hover:text-ink transition">✕</button>
+      </div>
+
+      <div class="px-5 py-5 space-y-5">
+        <div>
+          <label class="text-[11px] uppercase tracking-wider text-muted block mb-1.5">Daily calorie goal</label>
+          <input id="settingsGoal" type="number" min="0" step="10" class="w-full bg-surface2 border border-line rounded-lg px-3 py-2 text-sm font-mono focus:border-gold">
+        </div>
+        <button onclick="saveSettings()" class="w-full px-4 py-2.5 rounded-lg bg-gold text-bg text-sm font-semibold hover:opacity-90 transition">Save settings</button>
+
+        <div class="border-t border-line pt-5">
+          <p class="text-[11px] uppercase tracking-wider text-muted mb-2">Backup</p>
+          <div class="flex gap-2">
+            <button onclick="exportData()" class="flex-1 px-3 py-2 rounded-lg border border-line hover:border-gold text-sm transition">Export JSON</button>
+            <label class="flex-1 px-3 py-2 rounded-lg border border-line hover:border-gold text-sm text-center cursor-pointer transition">
+              Import JSON
+              <input type="file" accept="application/json" class="hidden" onchange="importData(this.files[0])">
+            </label>
+          </div>
+        </div>
+
+        <div class="border-t border-line pt-5">
+          <p class="text-[11px] uppercase tracking-wider text-rust mb-2">Danger zone</p>
+          <button onclick="resetAll()" class="w-full px-3 py-2 rounded-lg border border-rust text-rust text-sm hover:bg-rustSoft transition">Reset all data</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // ===================== STATE =====================
+  const STORAGE_KEY = 'calorie_tracker_v1';
+  const MEAL_TYPES = [
+    { key: 'breakfast', label: 'Breakfast' },
+    { key: 'lunch',     label: 'Lunch' },
+    { key: 'dinner',    label: 'Dinner' },
+    { key: 'snacks',    label: 'Snacks' },
+  ];
+  const WEEKDAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  function todayISO(){ return new Date().toISOString().slice(0,10); }
+  function pad(n){ return String(n).padStart(2, '0'); }
+  function isoDate(y, m, d){ return `${y}-${pad(m + 1)}-${pad(d)}`; }
+
+  function defaultState(){
+    return { goal: 2000, days: {} };
+  }
+
+  function loadState(){
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return defaultState();
+      const parsed = JSON.parse(raw);
+      return Object.assign(defaultState(), parsed);
+    } catch (e) {
+      console.error('Failed to load data', e);
+      return defaultState();
+    }
+  }
+
+  function saveState(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  let state = loadState();
+  let activeDate = null;
+  const now = new Date();
+  let viewYear = now.getFullYear();
+  let viewMonth = now.getMonth(); // 0-indexed
+
+  // ===================== DATA HELPERS =====================
+  function getDay(dateKey){
+    return state.days[dateKey] || null;
+  }
+
+  function ensureDay(dateKey){
+    if (!state.days[dateKey]) state.days[dateKey] = { meals: [], notes: '' };
+    return state.days[dateKey];
+  }
+
+  function dayTotal(dateKey){
+    const day = getDay(dateKey);
+    if (!day || !day.meals) return 0;
+    return day.meals.reduce((sum, m) => sum + Number(m.cal || 0), 0);
+  }
+
+  function isLogged(dateKey){
+    const day = getDay(dateKey);
+    return !!(day && day.meals && day.meals.length > 0);
+  }
+
+  function statusFor(dateKey){
+    if (!isLogged(dateKey)) return 'empty';
+    const ratio = dayTotal(dateKey) / state.goal;
+    if (ratio > 1.05) return 'over';
+    if (ratio < 0.85) return 'under';
+    return 'target';
+  }
+
+  function statusColor(status){
+    return { empty: 'transparent', under: '#4FB0A5', target: '#C9A227', over: '#D9603B' }[status];
+  }
+
+  // ===================== STATS =====================
+  function daysLoggedCount(){
+    return Object.keys(state.days).filter(k => isLogged(k)).length;
+  }
+
+  function computeStreak(){
+    let d = new Date(todayISO() + 'T00:00:00');
+    let streak = 0;
+    for (let i = 0; i < 3650; i++) {
+      const key = isoDate(d.getFullYear(), d.getMonth(), d.getDate());
+      if (isLogged(key)) { streak++; d.setDate(d.getDate() - 1); }
+      else break;
+    }
+    return streak;
+  }
+
+  function avgCalories(){
+    const loggedKeys = Object.keys(state.days).filter(k => isLogged(k));
+    if (loggedKeys.length === 0) return 0;
+    const total = loggedKeys.reduce((sum, k) => sum + dayTotal(k), 0);
+    return Math.round(total / loggedKeys.length);
+  }
+
+  // ===================== RENDER: STATS =====================
+  function renderStats(){
+    document.getElementById('statLogged').textContent = daysLoggedCount();
+    document.getElementById('statStreak').textContent = computeStreak();
+    document.getElementById('statAvg').textContent = avgCalories();
+    document.getElementById('goalLabel').textContent = 'Goal: ' + state.goal + ' kcal';
+  }
+
+  // ===================== RENDER: CALENDAR =====================
+  function renderWeekdayRow(){
+    const row = document.getElementById('weekdayRow');
+    row.innerHTML = WEEKDAYS.map(w => `<div class="text-[10px] sm:text-xs font-mono uppercase text-muted">${w}</div>`).join('');
+  }
+
+  function changeMonth(delta){
+    viewMonth += delta;
+    if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+    if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+    renderCalendar();
+  }
+
+  function renderCalendar(){
+    document.getElementById('monthLabel').textContent =
+      new Date(viewYear, viewMonth, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+    const grid = document.getElementById('calendarGrid');
+    const firstWeekday = new Date(viewYear, viewMonth, 1).getDay(); // 0 = Sun
+    const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+    const totalCells = firstWeekday + daysInMonth;
+    const trailing = (7 - (totalCells % 7)) % 7;
+    const todayKey = todayISO();
+
+    let html = '';
+    for (let i = 0; i < firstWeekday; i++) html += `<div class="day-cell"></div>`;
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const key = isoDate(viewYear, viewMonth, d);
+      const status = statusFor(key);
+      const color = statusColor(status);
+      const total = dayTotal(key);
+      const ratio = state.goal > 0 ? total / state.goal : 0;
+      const barPct = Math.min(Math.max(ratio, 0), 1.5) / 1.5 * 100;
+      const isToday = key === todayKey;
+
+      const dots = MEAL_TYPES.map(mt => {
+        const day = getDay(key);
+        const filled = day && day.meals && day.meals.some(m => m.type === mt.key);
+        return `<span class="w-1 h-1 rounded-full ${filled ? 'bg-gold' : 'bg-line'}"></span>`;
+      }).join('');
+
+      html += `
+        <button onclick="openDayModal('${key}')"
+          class="day-cell relative rounded-lg border ${isToday ? 'border-gold' : 'border-line'} hover:border-gold transition p-1.5 sm:p-2 flex flex-col justify-between text-left bg-surface2 overflow-hidden">
+          <div class="flex items-center justify-between">
+            <span class="font-mono text-[10px] sm:text-xs text-muted">${d}</span>
+            ${isToday ? '<span class="w-1.5 h-1.5 rounded-full bg-gold"></span>' : ''}
+          </div>
+          <div class="flex items-center gap-1 mb-1">${dots}</div>
+          <div class="absolute left-0 right-0 bottom-0 h-full pointer-events-none" style="z-index:0;">
+            <div class="bar-fill absolute left-0 right-0 bottom-0" style="height:${status === 'empty' ? 0 : barPct}%; background:${color}22; border-top:2px solid ${status === 'empty' ? 'transparent' : color};"></div>
+          </div>
+        </button>`;
+    }
+
+    for (let i = 0; i < trailing; i++) html += `<div class="day-cell"></div>`;
+    grid.innerHTML = html;
+  }
+
+  function renderAll(){
+    renderWeekdayRow();
+    renderCalendar();
+    renderStats();
+  }
+
+  // ===================== DAY MODAL =====================
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function openDayModal(dateKey){
+    activeDate = dateKey;
+    renderDayModal();
+    const modal = document.getElementById('dayModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+
+  function closeDayModal(){
+    document.getElementById('dayModal').classList.add('hidden');
+    document.getElementById('dayModal').classList.remove('flex');
+    activeDate = null;
+    renderAll();
+  }
+
+  function jumpToToday(){
+    const now2 = new Date();
+    viewYear = now2.getFullYear();
+    viewMonth = now2.getMonth();
+    renderCalendar();
+    openDayModal(todayISO());
+  }
+
+  function renderDayModal(){
+    const key = activeDate;
+    const d = new Date(key + 'T00:00:00');
+    document.getElementById('dayModalDateLabel').textContent =
+      d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+    const total = dayTotal(key);
+    const status = statusFor(key);
+    const color = statusColor(status === 'empty' ? 'under' : status);
+    document.getElementById('dayModalTotal').textContent = total + ' kcal';
+    document.getElementById('dayModalTotal').style.color = status === 'empty' ? '#ECEDEF' : color;
+    const diff = total - state.goal;
+    document.getElementById('dayModalDiff').textContent = `of ${state.goal} kcal (${diff > 0 ? '+' : ''}${diff})`;
+    const barPct = Math.min(Math.max(state.goal > 0 ? total / state.goal : 0, 0), 1.5) / 1.5 * 100;
+    const bar = document.getElementById('dayModalBar');
+    bar.style.width = barPct + '%';
+    bar.style.background = color;
+
+    const day = getDay(key);
+    document.getElementById('dayModalNotes').value = day ? (day.notes || '') : '';
+
+    const container = document.getElementById('mealSections');
+    container.innerHTML = MEAL_TYPES.map(mt => {
+      const items = day && day.meals ? day.meals.filter(m => m.type === mt.key) : [];
+      const itemsHtml = items.map(m => {
+        const globalIdx = day.meals.indexOf(m);
+        return `
+          <div class="flex items-center justify-between bg-surface2 border border-line rounded-lg px-3 py-2">
+            <span class="text-sm truncate pr-2">${escapeHtml(m.name)}</span>
+            <div class="flex items-center gap-2 shrink-0">
+              <span class="font-mono text-xs text-muted">${m.cal} kcal</span>
+              <button onclick="removeMeal(${globalIdx})" class="text-muted hover:text-rust transition" aria-label="Remove">✕</button>
+            </div>
+          </div>`;
+      }).join('');
+
+      return `
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <p class="text-[11px] uppercase tracking-wider text-muted">${mt.label}</p>
+            <p class="font-mono text-xs text-muted">${items.reduce((s,m)=>s+Number(m.cal||0),0)} kcal</p>
+          </div>
+          <div class="space-y-1.5 mb-2">${itemsHtml}</div>
+          <div class="flex gap-1.5">
+            <input id="foodName-${mt.key}" type="text" placeholder="Food item" class="flex-1 min-w-0 bg-surface2 border border-line rounded-lg px-2.5 py-1.5 text-sm placeholder:text-muted focus:border-gold">
+            <input id="foodCal-${mt.key}" type="number" min="0" placeholder="kcal" class="w-20 bg-surface2 border border-line rounded-lg px-2.5 py-1.5 text-sm font-mono placeholder:text-muted focus:border-gold">
+            <button onclick="addMeal('${mt.key}')" class="px-3 rounded-lg bg-gold text-bg text-sm font-semibold hover:opacity-90 transition shrink-0">+</button>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function addMeal(typeKey){
+    const nameInput = document.getElementById('foodName-' + typeKey);
+    const calInput = document.getElementById('foodCal-' + typeKey);
+    const name = nameInput.value.trim();
+    const cal = Number(calInput.value);
+    if (!name || !cal || cal <= 0) {
+      nameInput.classList.toggle('border-rust', !name);
+      calInput.classList.toggle('border-rust', !cal || cal <= 0);
+      return;
+    }
+    const day = ensureDay(activeDate);
+    day.meals.push({ type: typeKey, name, cal });
+    saveState();
+    renderDayModal();
+  }
+
+  function removeMeal(globalIdx){
+    const day = getDay(activeDate);
+    if (!day) return;
+    day.meals.splice(globalIdx, 1);
+    saveState();
+    renderDayModal();
+  }
+
+  function updateNotes(value){
+    const day = ensureDay(activeDate);
+    day.notes = value;
+    saveState();
+  }
+
+  function clearDay(){
+    if (!confirm('Clear all meals and notes for this day?')) return;
+    delete state.days[activeDate];
+    saveState();
+    renderDayModal();
+  }
+
+  // ===================== SETTINGS =====================
+  function openSettings(){
+    document.getElementById('settingsGoal').value = state.goal;
+    const modal = document.getElementById('settingsModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+
+  function closeSettings(){
+    document.getElementById('settingsModal').classList.add('hidden');
+    document.getElementById('settingsModal').classList.remove('flex');
+  }
+
+  function saveSettings(){
+    const newGoal = Number(document.getElementById('settingsGoal').value);
+    if (newGoal > 0) state.goal = newGoal;
+    saveState();
+    closeSettings();
+    renderAll();
+  }
+
+  // ===================== BACKUP =====================
+  function exportData(){
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `calorie-tracker-backup-${todayISO()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function importData(file){
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const parsed = JSON.parse(e.target.result);
+        if (!parsed.goal || typeof parsed.days !== 'object') throw new Error('Invalid file');
+        state = Object.assign(defaultState(), parsed);
+        saveState();
+        closeSettings();
+        renderAll();
+        alert('Data imported successfully.');
+      } catch (err) {
+        alert('Could not import this file — it does not look like a valid backup.');
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function resetAll(){
+    if (!confirm('This will permanently delete all logged days and settings. Continue?')) return;
+    state = defaultState();
+    saveState();
+    closeSettings();
+    renderAll();
+  }
+
+  // ===================== INIT =====================
+  document.getElementById('dayModal').addEventListener('click', e => {
+    if (e.target.id === 'dayModal') closeDayModal();
+  });
+  document.getElementById('settingsModal').addEventListener('click', e => {
+    if (e.target.id === 'settingsModal') closeSettings();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { closeDayModal(); closeSettings(); }
+  });
+
+  renderAll();
+
+  // ===================== PWA: INSTALL PROMPT =====================
+  let deferredInstallPrompt = null;
+
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    const btn = document.getElementById('installBtn');
+    btn.classList.remove('hidden');
+    btn.classList.add('inline-flex');
+  });
+
+  function installApp(){
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    deferredInstallPrompt.userChoice.finally(() => {
+      deferredInstallPrompt = null;
+      const btn = document.getElementById('installBtn');
+      btn.classList.add('hidden');
+      btn.classList.remove('inline-flex');
+    });
+  }
+
+  window.addEventListener('appinstalled', () => {
+    const btn = document.getElementById('installBtn');
+    btn.classList.add('hidden');
+    btn.classList.remove('inline-flex');
+    deferredInstallPrompt = null;
+  });
+
+  // ===================== PWA: SERVICE WORKER =====================
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(err => {
+        console.warn('Service worker registration failed:', err);
+      });
+    });
+  }
+</script>
+</body>
+</html>
