@@ -49,7 +49,7 @@
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-thumb { background:#2A303B; border-radius: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  .day-cell { aspect-ratio: 1 / 1; min-height: 52px; }
+  .day-cell { aspect-ratio: 1 / 1; }
   .bar-fill { transition: height .35s ease, background-color .35s ease; }
   .modal-backdrop { backdrop-filter: blur(6px); }
   input:focus, textarea:focus, button:focus-visible { outline: 2px solid #C9A227; outline-offset: 2px; }
@@ -114,14 +114,14 @@
     </section>
 
     <!-- ===================== CALENDAR ===================== -->
-    <section class="bg-surface border border-line rounded-2xl p-3 sm:p-5">
+    <section class="bg-surface border border-line rounded-2xl p-2 sm:p-5">
       <div class="flex items-center justify-between mb-4">
         <button onclick="changeMonth(-1)" aria-label="Previous month" class="w-8 h-8 flex items-center justify-center rounded-lg border border-line hover:border-gold text-muted hover:text-ink transition">‹</button>
         <p id="monthLabel" class="font-display text-lg uppercase tracking-wide">—</p>
         <button onclick="changeMonth(1)" aria-label="Next month" class="w-8 h-8 flex items-center justify-center rounded-lg border border-line hover:border-gold text-muted hover:text-ink transition">›</button>
       </div>
-      <div id="weekdayRow" class="grid grid-cols-7 gap-1.5 sm:gap-2 mb-2 text-center"></div>
-      <div id="calendarGrid" class="grid grid-cols-7 gap-1.5 sm:gap-2"></div>
+      <div id="weekdayRow" class="grid grid-cols-7 gap-1 sm:gap-2 mb-2 text-center"></div>
+      <div id="calendarGrid" class="grid grid-cols-7 gap-1 sm:gap-2"></div>
     </section>
 
 
@@ -446,20 +446,20 @@
 
       html += `
         <button onclick="openDayModal('${key}')"
-          class="day-cell relative rounded-xl border ${isToday ? 'border-gold bg-surface2 shadow-[0_0_10px_rgba(201,162,39,0.15)]' : 'border-line/70 bg-surface2/90'} hover:border-gold hover:bg-surface2 transition-all duration-200 p-1.5 sm:p-2 flex flex-col justify-between text-left overflow-hidden group">
+          class="day-cell relative rounded-xl border ${isToday ? 'border-gold bg-surface2 shadow-[0_0_10px_rgba(201,162,39,0.15)]' : 'border-line/70 bg-surface2/90'} hover:border-gold hover:bg-surface2 transition-all duration-200 p-1 sm:p-1.5 flex flex-col justify-between text-left overflow-hidden group">
           <div class="flex items-center justify-between w-full z-10 leading-none">
-            <span class="font-mono text-[11px] sm:text-xs ${isToday ? 'font-bold text-gold' : 'text-muted group-hover:text-ink'}">${d}</span>
+            <span class="font-mono text-[10px] sm:text-xs ${isToday ? 'font-bold text-gold' : 'text-muted group-hover:text-ink'}">${d}</span>
             ${isToday ? '<span class="w-1.5 h-1.5 rounded-full bg-gold shadow-[0_0_6px_#C9A227] shrink-0"></span>' : ''}
           </div>
           
           <div class="z-10 my-auto space-y-0.5 overflow-hidden">
             ${logged ? `
               <div class="flex items-baseline gap-0.5 leading-none">
-                <span class="font-display font-bold text-ink text-xs sm:text-sm tracking-tight">${totalCal}</span>
+                <span class="font-display font-bold text-ink text-[11px] sm:text-xs tracking-tight">${totalCal}</span>
                 <span class="font-mono text-[8px] sm:text-[9px] text-muted font-normal">cal</span>
               </div>
               <div class="flex items-baseline gap-0.5 leading-none">
-                <span class="font-display font-bold text-teal text-[11px] sm:text-xs tracking-tight">${totalProtein}g</span>
+                <span class="font-display font-bold text-teal text-[10px] sm:text-[11px] tracking-tight">${totalProtein}g</span>
                 <span class="font-mono text-[8px] sm:text-[9px] text-teal/70 font-normal">pro</span>
               </div>
             ` : ''}
