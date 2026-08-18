@@ -54,6 +54,28 @@
   .modal-backdrop { backdrop-filter: blur(6px); }
   input:focus, textarea:focus, button:focus-visible { outline: 2px solid #C9A227; outline-offset: 2px; }
   .scroll-thin::-webkit-scrollbar { width: 6px; }
+  @keyframes slideUpIn {
+    from { opacity: 0; transform: translateY(28px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes slideDownOut {
+    from { opacity: 1; transform: translateY(0) scale(1); }
+    to { opacity: 0; transform: translateY(28px) scale(0.98); }
+  }
+  @keyframes zoomIn {
+    from { opacity: 0; transform: scale(0.92); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  @keyframes zoomOut {
+    from { opacity: 1; transform: scale(1); }
+    to { opacity: 0; transform: scale(0.92); }
+  }
+
+  .modal-slide-in { animation: slideUpIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+  .modal-slide-out { animation: slideDownOut 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+  .modal-zoom-in { animation: zoomIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+  .modal-zoom-out { animation: zoomOut 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
   @media (prefers-reduced-motion: reduce) {
     * { transition: none !important; animation: none !important; }
   }
@@ -171,28 +193,28 @@
       </div>
 
       <!-- Add Log Item Form (Direct Entry - No Meal Selection) -->
-      <div class="bg-surface border border-line rounded-2xl p-5">
-        <h3 class="font-display text-base uppercase tracking-wider text-ink mb-4 flex items-center gap-2">
+      <div class="bg-surface border border-line rounded-2xl p-4 sm:p-5">
+        <h3 class="font-display text-base uppercase tracking-wider text-ink mb-3.5 flex items-center gap-2">
           <span class="w-2 h-2 rounded-full bg-gold"></span> Add Food Entry
         </h3>
         <form onsubmit="handleAddMealForm(event)" class="space-y-3">
           <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
             <div class="sm:col-span-6">
               <label class="text-[11px] uppercase font-mono tracking-wider text-muted block mb-1">Food Name *</label>
-              <input id="foodName" type="text" required placeholder="e.g. Chicken Salad, Protein Shake" class="w-full bg-surface2 border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:border-gold">
+              <input id="foodName" type="text" required placeholder="e.g. Paneer Tikka, Tofu Bowl, Sprouts Salad" class="w-full bg-surface2 border border-line rounded-xl px-3.5 py-2 text-sm placeholder:text-muted/60 focus:border-gold">
             </div>
             <div class="sm:col-span-3">
               <label class="text-[11px] uppercase font-mono tracking-wider text-muted block mb-1">Calories (kcal) *</label>
-              <input id="foodCal" type="number" min="0" required placeholder="e.g. 450" class="w-full bg-surface2 border border-line rounded-xl px-3.5 py-2.5 text-sm font-mono placeholder:text-muted focus:border-gold">
+              <input id="foodCal" type="number" min="0" required placeholder="e.g. 350" class="w-full bg-surface2 border border-line rounded-xl px-3.5 py-2 text-sm font-mono placeholder:text-muted/60 focus:border-gold">
             </div>
             <div class="sm:col-span-3">
               <label class="text-[11px] uppercase font-mono tracking-wider text-muted block mb-1">Protein (g)</label>
-              <input id="foodProtein" type="number" min="0" placeholder="e.g. 35" class="w-full bg-surface2 border border-line rounded-xl px-3.5 py-2.5 text-sm font-mono placeholder:text-muted focus:border-gold">
+              <input id="foodProtein" type="number" min="0" placeholder="e.g. 25" class="w-full bg-surface2 border border-line rounded-xl px-3.5 py-2 text-sm font-mono placeholder:text-muted/60 focus:border-gold">
             </div>
           </div>
           <div>
             <label class="text-[11px] uppercase font-mono tracking-wider text-muted block mb-1">Entry Note (Optional)</label>
-            <input id="foodNote" type="text" placeholder="e.g. Extra dressing, post-workout" class="w-full bg-surface2 border border-line rounded-xl px-3.5 py-2 text-sm placeholder:text-muted focus:border-gold">
+            <input id="foodNote" type="text" placeholder="e.g. Extra paneer, post-workout, low oil" class="w-full bg-surface2 border border-line rounded-xl px-3.5 py-2 text-sm placeholder:text-muted/60 focus:border-gold">
           </div>
           <div class="pt-1">
             <button type="submit" class="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gold text-bg text-sm font-semibold hover:opacity-90 transition flex items-center justify-center gap-2">
@@ -486,18 +508,22 @@
     activeDate = dateKey;
     renderDayModal();
     const modal = document.getElementById('dayModal');
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
+    modal.classList.remove('hidden', 'modal-slide-out');
+    modal.classList.add('flex', 'modal-slide-in');
     document.body.style.overflow = 'hidden';
   }
 
   function closeDayModal(){
     const modal = document.getElementById('dayModal');
-    modal.classList.add('hidden');
-    modal.classList.remove('flex');
-    document.body.style.overflow = '';
-    activeDate = null;
-    renderAll();
+    modal.classList.remove('modal-slide-in');
+    modal.classList.add('modal-slide-out');
+    setTimeout(() => {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex', 'modal-slide-out');
+      document.body.style.overflow = '';
+      activeDate = null;
+      renderAll();
+    }, 180);
   }
 
   function jumpToToday(){
@@ -517,26 +543,28 @@
     // Calorie stats
     const totalCal = dayTotal(key);
     const status = statusFor(key);
-    const color = statusColor(status === 'empty' ? 'under' : status);
+    const calColor = status === 'over' ? '#D9603B' : '#C9A227';
     document.getElementById('dayModalTotal').textContent = totalCal + ' kcal';
-    document.getElementById('dayModalTotal').style.color = status === 'empty' ? '#ECEDEF' : color;
+    document.getElementById('dayModalTotal').style.color = status === 'empty' ? '#ECEDEF' : calColor;
     
     const diffCal = totalCal - state.goal;
     document.getElementById('dayModalDiff').textContent = `${totalCal} / ${state.goal} kcal (${diffCal > 0 ? '+' : ''}${diffCal})`;
     const calPct = Math.min(Math.max(state.goal > 0 ? totalCal / state.goal : 0, 0), 1.5) / 1.5 * 100;
     const barCal = document.getElementById('dayModalBar');
     barCal.style.width = calPct + '%';
-    barCal.style.background = color;
+    barCal.style.background = calColor;
 
     // Protein stats
     const totalProtein = dayProteinTotal(key);
     const pGoal = state.proteinGoal || 140;
     const diffProtein = totalProtein - pGoal;
     document.getElementById('dayModalProteinTotal').textContent = totalProtein + ' g';
+    document.getElementById('dayModalProteinTotal').style.color = '#4FB0A5';
     document.getElementById('dayModalProteinDiff').textContent = `${totalProtein} / ${pGoal} g (${diffProtein > 0 ? '+' : ''}${diffProtein})`;
     const proteinPct = Math.min(Math.max(pGoal > 0 ? totalProtein / pGoal : 0, 0), 1.5) / 1.5 * 100;
     const barProtein = document.getElementById('dayModalProteinBar');
     barProtein.style.width = proteinPct + '%';
+    barProtein.style.background = '#4FB0A5';
 
     // Day notes
     const day = getDay(key);
@@ -637,15 +665,19 @@
     onConfirmCallback = onConfirm;
 
     const modal = document.getElementById('confirmModal');
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
+    modal.classList.remove('hidden', 'modal-zoom-out');
+    modal.classList.add('flex', 'modal-zoom-in');
   }
 
   function closeConfirmModal(){
     const modal = document.getElementById('confirmModal');
-    modal.classList.add('hidden');
-    modal.classList.remove('flex');
-    onConfirmCallback = null;
+    modal.classList.remove('modal-zoom-in');
+    modal.classList.add('modal-zoom-out');
+    setTimeout(() => {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex', 'modal-zoom-out');
+      onConfirmCallback = null;
+    }, 160);
   }
 
   document.getElementById('confirmModalConfirmBtn').addEventListener('click', () => {
@@ -687,13 +719,18 @@
     document.getElementById('settingsGoal').value = state.goal;
     document.getElementById('settingsProteinGoal').value = state.proteinGoal || 140;
     const modal = document.getElementById('settingsModal');
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
+    modal.classList.remove('hidden', 'modal-zoom-out');
+    modal.classList.add('flex', 'modal-zoom-in');
   }
 
   function closeSettings(){
-    document.getElementById('settingsModal').classList.add('hidden');
-    document.getElementById('settingsModal').classList.remove('flex');
+    const modal = document.getElementById('settingsModal');
+    modal.classList.remove('modal-zoom-in');
+    modal.classList.add('modal-zoom-out');
+    setTimeout(() => {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex', 'modal-zoom-out');
+    }, 160);
   }
 
   function saveSettings(){
